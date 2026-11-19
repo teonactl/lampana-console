@@ -1294,6 +1294,14 @@
       el("fwBreak").textContent = `${payload[2]} / ${payload[3]}`;
       el("fwRate").textContent = `${payload[4]} Hz`;
     }
+    if (label === LABEL_SET_TIME && payload.length >= 1) {
+      if (payload[0] === 1) {
+        el("timeSyncResult").style.color = "var(--good)";
+      } else {
+        el("timeSyncResult").textContent = "RTC non trovato sulla scheda";
+        el("timeSyncResult").style.color = "var(--bad, #c0392b)";
+      }
+    }
   }
   async function readLoop() {
     try {
