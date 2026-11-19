@@ -406,6 +406,13 @@
     </section>
 
     <section>
+      <div class="section-head"><div><div class="eyebrow">Orologio scheda</div><h2>Data e ora (RTC)</h2></div><button id="syncTimeBtn" disabled>Sincronizza con questo PC</button></div>
+      <div class="diag-grid">
+        <div class="stat"><div class="label">Ultima sincronizzazione</div><div class="value" id="timeSyncResult">mai fatta</div></div>
+      </div>
+    </section>
+
+    <section>
       <details class="manual">
         <summary>Canali manuali (avanzato)</summary>
         <div class="manual-body">
@@ -433,7 +440,7 @@
 
 <script>
   const SOM = 0x7e, EOM = 0xe7;
-  const LABEL_DMX = 6, LABEL_GET_PARAMS = 3;
+  const LABEL_DMX = 6, LABEL_GET_PARAMS = 3, LABEL_SET_TIME = 90;
   const STORAGE_KEY = "lampana_console_v4";
 
   // "base" = livello programmer (quello che imposti tu con slider/command line/cue)
@@ -1238,7 +1245,7 @@
     pill.classList.toggle("ok", connected);
     el("connLabel").textContent = connected ? "connesso" : "non connesso";
     el("connectBtn").textContent = connected ? "Disconnetti" : "Connetti porta seriale";
-    for (const id of ["pingBtn", "blackoutAllBtn", "setCustomBtn"]) el(id).disabled = !connected;
+    for (const id of ["pingBtn", "blackoutAllBtn", "setCustomBtn", "syncTimeBtn"]) el(id).disabled = !connected;
   }
 
   function buildFrame(label, payload) {
@@ -1257,6 +1264,15 @@
   async function sendGetParams() {
     el("pingResult").textContent = "in corso...";
     await sendBytes(buildFrame(LABEL_GET_PARAMS, new Uint8Array([0, 0])), "GET_PARAMS");
+  }
+  async function sendSetTime() {
+    const now = new Date();
+    const payload = new Uint8Array([
+      now.getFullYear() - 2000, now.getMonth() + 1, now.getDate(),
+      now.getHours(), now.getMinutes(), now.getSeconds(),
+    ]);
+    await sendBytes(buildFrame(LABEL_SET_TIME, payload), "SET_TIME");
+    el("timeSyncResult").textContent = now.toLocaleString("it-IT");
   }
 
   let pstate = "SOM", plabel = 0, plen = 0, ppayload = [];
@@ -1311,6 +1327,7 @@
   }
   el("connectBtn").addEventListener("click", () => { el("connPill").classList.contains("ok") ? disconnect() : connect(); });
   el("pingBtn").addEventListener("click", () => { el("pingResult").style.color = ""; sendGetParams().catch((e) => logLine("err", e.message)); });
+  el("syncTimeBtn").addEventListener("click", () => { sendSetTime().catch((e) => logLine("err", e.message)); });
 
   // canali extra (>16) richiesti a mano: diventano slider persistenti, non un'applicazione una tantum
   const extraChannels = [];
