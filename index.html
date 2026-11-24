@@ -498,6 +498,8 @@
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <span class="pill" id="cueStatePillCue"><span class="dot"></span><span id="cueStateLabelCue">nessuna cue attiva</span></span>
           <button id="goNextBtnCue" class="primary" disabled>GO</button>
+          <button id="stopFadeBtnCue" disabled>Stop</button>
+          <button id="resetCueBtn" title="Torna a 'nessuna cue attiva' (cue 0), senza toccare l'uscita">Reset</button>
           <button id="recordCueBtn">+ Registra cue da stato attuale</button>
         </div>
       </div>
@@ -1733,11 +1735,23 @@
   el("goNextBtn").addEventListener("click", goNextCue);
   el("goNextBtnCue").addEventListener("click", goNextCue);
   el("stopFadeBtn").addEventListener("click", () => stopFade());
+  el("stopFadeBtnCue").addEventListener("click", () => stopFade());
+  el("resetCueBtn").addEventListener("click", () => {
+    // "Cue 0": nessuna cue attiva, pronta a ripartire da capo con GO.
+    // Non tocca l'uscita corrente (stesso principio non-distruttivo del
+    // blackout) -- ferma solo un eventuale fade in corso e azzera il
+    // puntatore, cosi' il prossimo GO riparte dalla prima cue.
+    stopFade();
+    cueCursor = -1;
+    renderCues();
+    logLine("sys", "cue: reset a cue 0 (nessuna cue attiva)");
+  });
 
   function stopFade() {
     if (fadeHandle) cancelAnimationFrame(fadeHandle);
     fadeHandle = null;
     el("stopFadeBtn").disabled = true;
+    el("stopFadeBtnCue").disabled = true;
   }
 
   function goToCue(idx) {
@@ -1755,6 +1769,7 @@
     let lastSend = 0;
     logLine("sys", `GO &rarr; cue ${idx + 1} "${cue.name}" (in ${cue.fadeInSeconds}s / out ${cue.fadeOutSeconds}s)`);
     el("stopFadeBtn").disabled = false;
+    el("stopFadeBtnCue").disabled = false;
 
     function tick(now) {
       const elapsed = now - t0;
@@ -1768,7 +1783,7 @@
       renderChanGrid(); renderParamPanel(); syncAllManualChannels();
       if (now - lastSend >= 30) { sendDmxFrame().catch((e) => logLine("err", e.message)); lastSend = now; }
       if (elapsed < maxMs) fadeHandle = requestAnimationFrame(tick);
-      else { fadeHandle = null; el("stopFadeBtn").disabled = true; sendDmxFrame().catch((e) => logLine("err", e.message)); }
+      else { fadeHandle = null; el("stopFadeBtn").disabled = true; el("stopFadeBtnCue").disabled = true; sendDmxFrame().catch((e) => logLine("err", e.message)); }
     }
     fadeHandle = requestAnimationFrame(tick);
   }
