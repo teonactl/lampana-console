@@ -31,6 +31,7 @@
   }
 
   * { box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
   body {
     background: var(--bg); color: var(--ink); font-family: "Archivo", system-ui, sans-serif;
     padding: 24px 20px 60px; display: flex; justify-content: center;
@@ -180,10 +181,20 @@
   .console-card .ccard-head .addr-tag { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink-dim); }
   .console-channels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   @media (max-width: 760px) { .console-channels { grid-template-columns: 1fr; } }
-  .ch { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--surface); display: flex; align-items: center; gap: 10px; }
+  .channels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .ch { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--surface); display: flex; align-items: center; gap: 10px; min-width: 0; }
   .ch .num { font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--ink-dim); width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ch input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+  .ch input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); cursor: pointer; }
   .ch .val { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 13px; font-variant-numeric: tabular-nums; width: 2.6em; text-align: right; flex-shrink: 0; }
+  @media (max-width: 480px) {
+    /* riga troppo stretta per label fissa (90px) + slider + valore tutti
+       in linea: la label va sopra, su una riga propria, slider e valore
+       sotto -- niente piu' overflow ne' spazio sprecato tra i due. */
+    .channels { grid-template-columns: 1fr; }
+    .ch { flex-wrap: wrap; gap: 2px 8px; padding: 8px 10px; }
+    .ch .num { width: 100%; white-space: normal; overflow: visible; text-overflow: clip; }
+    .ch input[type="range"] { flex: 1 1 auto; }
+  }
 
   /* toolbar live: blackout + go */
   .live-toolbar {
@@ -198,12 +209,22 @@
     letter-spacing: 0.06em; font-size: 15px; padding: 10px 22px;
   }
   .blackout-btn:hover:not(:disabled) { background: var(--bad); color: var(--accent-ink); }
+  .blackout-btn.active { background: var(--bad); color: var(--accent-ink); box-shadow: 0 0 0 3px var(--bad-bg); }
 
   /* fader bank: stile "Simple Desk" */
-  .fader-bank { display: flex; flex-wrap: wrap; gap: 14px; }
+  /* grid (non flex-wrap): auto-fill+minmax garantisce che le colonne non
+     escano mai dalla larghezza disponibile, a differenza di un flex-wrap
+     con larghezza di colonna fissa -- si adatta allo schermo invece di
+     andare in overflow su mobile. */
+  .fader-bank { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px; }
+  @media (max-width: 480px) {
+    .fader-bank { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+    .fader-track { width: 34px; height: 110px; }
+    .fader-track input[type="range"] { width: 100px; height: 22px; }
+  }
   .fader-col {
     display: flex; flex-direction: column; align-items: center; gap: 6px;
-    width: 76px; padding: 10px 6px 12px; border: 1px solid var(--line); border-radius: 10px;
+    width: 100%; padding: 10px 4px 12px; border: 1px solid var(--line); border-radius: 10px;
     background: var(--surface-2);
   }
   .fader-col .fnum {
@@ -212,11 +233,19 @@
   }
   .fader-col.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
   .fader-col .flabel {
-    font-size: 10.5px; color: var(--ink-dim); text-align: center; cursor: pointer;
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    /* a capo su piu' righe invece di troncare con l'ellissi: la colonna
+       resta stretta (meno spazio sprecato in larghezza) e il nome si
+       legge comunque per intero, solo su piu' righe. */
+    font-size: 10px; line-height: 1.2; color: var(--ink-dim); text-align: center; cursor: pointer;
+    max-width: 100%; white-space: normal; word-break: break-word; overflow-wrap: anywhere;
   }
   /* slider orizzontale ruotato via transform: più affidabile di writing-mode/-webkit-appearance:slider-vertical */
-  .fader-track { width: 44px; height: 150px; position: relative; display: flex; align-items: center; justify-content: center; }
+  /* overflow:hidden: l'input prima della rotazione occupa la sua larghezza
+     "orizzontale" originale (136px) nel calcolo dell'overflow scrollabile
+     di alcuni browser mobile anche se il transform lo ruota visivamente in
+     verticale -- senza questo puo' allargare lo scroll orizzontale della
+     pagina anche se visivamente la colonna sembra contenuta. */
+  .fader-track { width: 44px; height: 150px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .fader-track input[type="range"] {
     width: 136px; height: 28px; margin: 0; transform: rotate(-90deg);
     accent-color: var(--accent); cursor: pointer;
@@ -227,6 +256,27 @@
   .fader-col .fbtns { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; }
   .fader-col .fbtns button { padding: 3px 6px; font-size: 10px; border-radius: 5px; }
   .sub-chips { font-family: "JetBrains Mono", monospace; font-size: 9.5px; color: var(--ink-dim); text-align: center; }
+
+  .button-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .quick-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    min-width: 110px; padding: 16px 10px 10px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--surface-2);
+    cursor: pointer; user-select: none; position: relative;
+  }
+  .quick-btn:hover { border-color: var(--accent); }
+  .quick-btn.on { border-color: var(--good); background: var(--good-bg); }
+  .quick-btn .qb-name { font-weight: 700; font-size: 13px; text-align: center; text-wrap: balance; }
+  .quick-btn .qb-type { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-dim); }
+  .quick-btn .qb-del {
+    position: absolute; top: 4px; right: 6px; font-size: 13px; line-height: 1;
+    color: var(--bad); background: none; border: none; padding: 2px 4px;
+  }
+
+  /* Master: fader orizzontale (non ruotato come quelli di channel/submaster) */
+  .master-row { display: flex; align-items: center; gap: 14px; margin: 2px 0 18px; }
+  .master-row input[type="range"] { flex: 1; min-width: 0; height: 28px; accent-color: var(--accent); cursor: pointer; }
+  .master-row .fval { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 16px; min-width: 52px; text-align: right; color: var(--accent-strong); }
 
   details.manual summary {
     cursor: pointer; font-family: "Big Shoulders", sans-serif; font-weight: 700; font-stretch: condensed;
@@ -244,6 +294,22 @@
   .preset-build-grid .pb-field input { width: 100%; }
   .preset-apply-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line); }
   @media (max-width: 700px) { .preset-apply-form { grid-template-columns: 1fr; } }
+  .ofl-mode-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+    margin-bottom: 6px;
+    transition: background 0.4s ease, border-color 0.4s ease;
+  }
+  .ofl-mode-row.just-imported { background: var(--good-bg); border-color: var(--good); }
+  @keyframes ofl-import-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+  .ofl-mode-row button.imported {
+    background: var(--good); color: var(--accent-ink); border-color: var(--good);
+    animation: ofl-import-pop 0.35s ease-out;
+  }
 
   .log {
     background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
@@ -268,6 +334,7 @@
       <div class="subtitle">protocollo Enttec USB Pro &middot; via Web Serial</div>
     </div>
     <div class="toprow">
+      <span class="pill ok" id="battPill"><span class="dot"></span>batteria: in carica (USB)</span>
       <span class="pill accent" id="selectionPill"><span class="dot"></span><span id="selectionLabel">nessun canale selezionato</span></span>
       <span class="pill" id="connPill"><span class="dot"></span><span id="connLabel">non connesso</span></span>
       <button class="primary" id="connectBtn">Connetti porta seriale</button>
@@ -280,6 +347,7 @@
     <button class="tab-btn" data-tab="preset">Preset</button>
     <button class="tab-btn" data-tab="submaster">Submaster</button>
     <button class="tab-btn" data-tab="cue">Cue</button>
+    <button class="tab-btn" data-tab="buttons">Pulsanti</button>
     <button class="tab-btn" data-tab="setup">Setup</button>
   </nav>
 
@@ -312,6 +380,47 @@
   <!-- ===== PATCH ===== -->
   <div class="page" data-page="patch" hidden>
     <section>
+      <div class="section-head">
+        <div><div class="eyebrow">open-fixture-library.org</div><h2>Libreria fixture</h2></div>
+        <span class="pill" id="oflStatusBadge" hidden></span>
+      </div>
+      <input type="file" id="oflImportFileInput" accept="application/json" hidden>
+      <div id="oflDownloadSection">
+        <button class="primary" id="oflDownloadBtn">Scarica libreria fixture</button>
+        <div class="range-note" id="oflDownloadStatus"></div>
+        <div class="cmd-hint" style="margin-top:10px;">
+          Niente internet qui? Scarica la libreria da un altro
+          dispositivo/rete con internet (anche questa stessa pagina aperta
+          altrove), esportala su file, poi importa quel file qui.
+        </div>
+        <button class="ghost" id="oflImportFileBtn" style="margin-top:6px;">Importa libreria da file</button>
+      </div>
+      <div id="oflExploreSection" hidden>
+        <div>
+          <label class="field-label" for="oflSearchInput">Cerca su tutta la libreria (produttore o modello)</label>
+          <input type="text" id="oflSearchInput" placeholder="es. mac 250, american dj, par rgb..." style="width:100%;">
+          <div id="oflSearchResults" style="margin-top:8px;"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);">
+          <div style="flex:1;min-width:160px;">
+            <label class="field-label" for="oflManufacturerSelect">...oppure sfoglia per produttore</label>
+            <select id="oflManufacturerSelect" style="width:100%;"><option value="">-- scegli produttore --</option></select>
+          </div>
+          <div style="flex:1;min-width:160px;">
+            <label class="field-label" for="oflFixtureSelect">Fixture</label>
+            <select id="oflFixtureSelect" style="width:100%;"><option value="">-- scegli produttore --</option></select>
+          </div>
+        </div>
+        <div id="oflFixtureDetail" style="margin-top:10px;"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line);">
+          <button class="ghost" id="oflRefreshBtn" title="Ricontrolla l'elenco produttori">Aggiorna libreria</button>
+          <button class="ghost" id="oflExportFileBtn" title="Salva su file quanto scaricato finora, per portarlo su un dispositivo senza internet">Esporta libreria su file</button>
+          <button class="ghost" id="oflImportFileBtn2" title="Importa/aggiorna da un file esportato in precedenza">Importa libreria da file</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
       <div class="section-head"><div><div class="eyebrow">Libreria &middot; tipi di fixture</div><h2>Profili</h2></div></div>
       <div class="profile-list" id="profileList"></div>
       <div class="eyebrow" style="margin-bottom:8px;">Nuovo profilo</div>
@@ -334,10 +443,12 @@
           <button class="ghost" id="cancelPatchEditBtn" hidden>Annulla</button>
         </div>
       </div>
+      <div style="overflow-x:auto;">
       <table class="data-table" id="patchTable">
         <thead><tr><th>Chan</th><th>Type</th><th>Address</th><th>Label</th><th></th></tr></thead>
         <tbody id="patchTableBody"></tbody>
       </table>
+      </div>
     </section>
   </div>
 
@@ -386,10 +497,31 @@
         <div><div class="eyebrow">Playback</div><h2>Memorie / Cue</h2></div>
         <button id="recordCueBtn">+ Registra cue da stato attuale</button>
       </div>
+      <div style="overflow-x:auto;">
       <table class="data-table" id="cueTable">
         <thead><tr><th>#</th><th>Nome</th><th>Note</th><th>In (s)</th><th>Out (s)</th><th></th></tr></thead>
         <tbody id="cueTableBody"></tbody>
       </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== PULSANTI ===== -->
+  <div class="page" data-page="buttons" hidden>
+    <section>
+      <div class="section-head">
+        <div><div class="eyebrow">Richiamo rapido</div><h2>Pulsanti</h2></div>
+        <button id="addButtonBtn">+ Nuovo da selezione</button>
+      </div>
+      <div class="cmd-hint">seleziona dei channel (coi loro livelli) nella pagina Live, poi "+ Nuovo da selezione" qui per catturarli in un pulsante</div>
+
+      <div class="eyebrow" style="margin-top:14px;">Controllo globale</div>
+      <div class="master-row">
+        <input type="range" id="masterFader" min="0" max="100" value="100">
+        <span class="fval" id="masterVal">100%</span>
+      </div>
+
+      <div class="button-grid" id="buttonList" style="margin-top:10px;"></div>
     </section>
   </div>
 
@@ -416,7 +548,7 @@
       <details class="manual">
         <summary>Canali manuali (avanzato)</summary>
         <div class="manual-body">
-          <div class="channels" id="channelGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"></div>
+          <div class="channels" id="channelGrid"></div>
           <div class="custom-row">
             <label class="field-label" for="customCh" style="margin:0;">canale extra (1&ndash;512)</label>
             <input type="number" id="customCh" min="1" max="512" value="17">
@@ -424,7 +556,7 @@
             <input type="number" id="customVal" min="0" max="255" value="0">
             <button id="setCustomBtn" disabled>Applica</button>
           </div>
-          <div class="channels" id="extraChannelGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;"></div>
+          <div class="channels" id="extraChannelGrid" style="margin-top:10px;"></div>
         </div>
       </details>
     </section>
@@ -497,6 +629,8 @@
   let state = loadState();
   if (!Array.isArray(state.cues)) state.cues = [];
   if (!Array.isArray(state.submasters)) state.submasters = [];
+  if (!Array.isArray(state.buttons)) state.buttons = [];
+  if (typeof state.master !== "number") state.master = 100;
   for (const p of state.profiles) if (!Array.isArray(p.presets)) p.presets = [];
   state.patch.forEach((pt, i) => { if (pt.channel == null) pt.channel = i + 1; });
 
@@ -530,6 +664,11 @@
   }
 
   // ---------- mix HTP: base + submaster -> output ----------
+  // blackoutActive e' uno stato live di sessione (NON salvato in state/
+  // localStorage, NON tocca base ne' i fader dei submaster): forza solo
+  // l'uscita DMX reale a 0, cosi' disattivarlo riporta esattamente il
+  // look programmato, senza aver perso nulla.
+  let blackoutActive = false;
   function recomputeOutput() {
     output.set(base);
     for (const sub of state.submasters) {
@@ -541,6 +680,21 @@
         if (scaled > output[addr]) output[addr] = scaled;
       }
     }
+    // Master: scala SOLO il canale dimmer/intensita' di ogni fixture
+    // patchata (stesso riconoscimento di levelIndex(), usato per i
+    // preset) -- mai tutti i 512 canali: colore/strobe/fade non sono
+    // livelli di intensita' e scalarli a caso manda segnali senza senso
+    // alla fixture.
+    const masterK = Math.max(0, Math.min(100, typeof state.master === "number" ? state.master : 100)) / 100;
+    if (masterK < 1) {
+      for (const pt of state.patch) {
+        const prof = profileById(pt.profileId);
+        if (!prof) continue;
+        const addr = pt.address + levelIndex(prof);
+        if (addr >= 1 && addr < output.length) output[addr] = Math.round(output[addr] * masterK);
+      }
+    }
+    if (blackoutActive) output.fill(0);
   }
   function pushOut() {
     recomputeOutput();
@@ -592,6 +746,8 @@
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-del-profile");
         if (state.patch.some((pt) => pt.profileId === id)) { logLine("err", "elimina prima i channel in patch che usano questo profilo"); return; }
+        const prof = profileById(id);
+        if (!confirm(`Eliminare il profilo "${prof ? prof.name : id}"? Verranno persi anche tutti i suoi preset.`)) return;
         state.profiles = state.profiles.filter((p) => p.id !== id);
         saveState(); renderAll();
       });
@@ -619,6 +775,382 @@
     el("newProfileChannels").value = "";
     renderAll();
   });
+
+  // ---------- Libreria fixture: Open Fixture Library (cache IndexedDB) ----------
+  // open-fixture-library.org / github.com/OpenLightingProject/open-fixture-library.
+  // Un "mode" OFL (modes[].channels, un array di stringhe) diventa
+  // direttamente un nostro profilo -- non serve interpretare
+  // availableChannels (le capability dettagliate), il nostro modello usa
+  // solo i nomi canale.
+  const OFL_DB_NAME = "lampana_ofl_cache";
+  const OFL_DB_VERSION = 2;
+  const OFL_REPO = "https://api.github.com/repos/OpenLightingProject/open-fixture-library";
+  const OFL_RAW = "https://raw.githubusercontent.com/OpenLightingProject/open-fixture-library/master";
+  const OFL_API = `${OFL_REPO}/contents`;
+  let oflDbPromise = null;
+
+  function oflDb() {
+    if (oflDbPromise) return oflDbPromise;
+    oflDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(OFL_DB_NAME, OFL_DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("manufacturers")) db.createObjectStore("manufacturers");
+        if (!db.objectStoreNames.contains("manufacturerFixtures")) db.createObjectStore("manufacturerFixtures");
+        if (!db.objectStoreNames.contains("fixtures")) db.createObjectStore("fixtures");
+        if (!db.objectStoreNames.contains("fixtureIndex")) db.createObjectStore("fixtureIndex");
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return oflDbPromise;
+  }
+  async function idbGet(store, key) {
+    const db = await oflDb();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(store, "readonly").objectStore(store).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbSet(store, key, value) {
+    const db = await oflDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, "readwrite");
+      tx.objectStore(store).put(value, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function oflFetchManufacturers() {
+    const res = await fetch(`${OFL_RAW}/fixtures/manufacturers.json`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    delete data.$schema;
+    await idbSet("manufacturers", "index", data);
+    return data;
+  }
+  async function oflFetchManufacturerFixtures(manKey) {
+    const res = await fetch(`${OFL_API}/fixtures/${manKey}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const list = await res.json();
+    const keys = list.filter((f) => f.name.endsWith(".json")).map((f) => f.name.replace(/\.json$/, ""));
+    await idbSet("manufacturerFixtures", manKey, keys);
+    return keys;
+  }
+  async function oflFetchFixture(manKey, fixKey) {
+    const res = await fetch(`${OFL_RAW}/fixtures/${manKey}/${fixKey}.json`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    await idbSet("fixtures", `${manKey}/${fixKey}`, data);
+    return data;
+  }
+  // Indice completo (tutti i fixture, produttore+chiave) per la ricerca
+  // globale: SOLO 2 chiamate api.github.com (albero git ricorsivo sulla
+  // cartella fixtures/), non una per produttore -- altrimenti supererebbe
+  // subito il limite di 60 richieste/ora non autenticate.
+  async function oflFetchFullIndex() {
+    const rootRes = await fetch(`${OFL_REPO}/git/trees/master`);
+    if (!rootRes.ok) throw new Error(`HTTP ${rootRes.status}`);
+    const rootTree = await rootRes.json();
+    const fixturesEntry = (rootTree.tree || []).find((e) => e.path === "fixtures");
+    if (!fixturesEntry) throw new Error("cartella fixtures non trovata");
+    const treeRes = await fetch(`${OFL_REPO}/git/trees/${fixturesEntry.sha}?recursive=true`);
+    if (!treeRes.ok) throw new Error(`HTTP ${treeRes.status}`);
+    const tree = await treeRes.json();
+    const index = (tree.tree || [])
+      .filter((e) => e.type === "blob" && e.path.endsWith(".json") && e.path.includes("/"))
+      .map((e) => {
+        const slash = e.path.indexOf("/");
+        return { manufacturer: e.path.slice(0, slash), key: e.path.slice(slash + 1, -5) };
+      });
+    await idbSet("fixtureIndex", "all", index);
+    return index;
+  }
+
+  // Scarica/aggiorna TUTTO il necessario per funzionare completamente
+  // offline in seguito: indice produttori, indice completo fixture (2
+  // chiamate, vedi oflFetchFullIndex), l'elenco fixture per OGNI
+  // produttore derivato dall'indice (zero chiamate aggiuntive -- e'
+  // quello che prima mancava: senza, il menu "Fixture" restava vuoto
+  // offline perche' nessun produttore era mai stato sfogliato online), e
+  // il JSON completo di ogni singola fixture (cosi' anche aprire un
+  // risultato di ricerca funziona offline, non solo le select). Le
+  // fixture vengono scaricate con 6 richieste in parallelo per volta,
+  // non tutte insieme ne' una alla volta.
+  async function oflDownloadEverything(onProgress) {
+    const manufacturers = await oflFetchManufacturers();
+    const index = await oflFetchFullIndex();
+
+    const byManufacturer = {};
+    for (const entry of index) {
+      (byManufacturer[entry.manufacturer] = byManufacturer[entry.manufacturer] || []).push(entry.key);
+    }
+    for (const [manKey, keys] of Object.entries(byManufacturer)) {
+      await idbSet("manufacturerFixtures", manKey, keys);
+    }
+
+    const CONCURRENCY = 6;
+    let nextIdx = 0;
+    let done = 0;
+    async function worker() {
+      while (nextIdx < index.length) {
+        const entry = index[nextIdx++];
+        try { await oflFetchFixture(entry.manufacturer, entry.key); } catch (e) { /* una fixture fallita non blocca le altre */ }
+        done++;
+        if (onProgress) onProgress(done, index.length);
+      }
+    }
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+    return { manufacturers, index };
+  }
+
+  function setOflBadge(text, cls) {
+    const badge = el("oflStatusBadge");
+    badge.hidden = false;
+    badge.textContent = text;
+    badge.classList.toggle("ok", cls === "ok");
+  }
+
+  function renderOflManufacturers(data) {
+    oflSearchManufacturers = data;
+    const sel = el("oflManufacturerSelect");
+    const current = sel.value;
+    const sorted = Object.entries(data).sort((a, b) => a[1].name.localeCompare(b[1].name));
+    sel.innerHTML = `<option value="">-- scegli produttore --</option>` +
+      sorted.map(([key, m]) => `<option value="${key}">${escapeHtml(m.name)}</option>`).join("");
+    if (current) sel.value = current;
+  }
+
+  async function initFixtureLibrary() {
+    const cached = await idbGet("manufacturers", "index").catch(() => null);
+    if (cached) {
+      el("oflDownloadSection").hidden = true;
+      el("oflExploreSection").hidden = false;
+      renderOflManufacturers(cached);
+      setOflBadge("libreria: pronta (cache)", "");
+    }
+    await ensureOflSearchIndex();
+  }
+
+  el("oflDownloadBtn").addEventListener("click", async () => {
+    el("oflDownloadBtn").disabled = true;
+    el("oflDownloadStatus").textContent = "scaricamento in corso...";
+    try {
+      const { manufacturers, index } = await oflDownloadEverything((done, total) => {
+        el("oflDownloadStatus").textContent = `Scaricamento in corso... ${done}/${total} fixture`;
+      });
+      oflSearchIndex = index;
+      el("oflDownloadSection").hidden = true;
+      el("oflExploreSection").hidden = false;
+      renderOflManufacturers(manufacturers);
+      setOflBadge("libreria: completa (pronta offline)", "ok");
+      logLine("sys", `libreria fixture scaricata per intero (${index.length} fixture): funziona anche offline`);
+    } catch (e) {
+      el("oflDownloadStatus").textContent = `Scaricamento fallito (${e.message}): serve una connessione a internet.`;
+    } finally {
+      el("oflDownloadBtn").disabled = false;
+    }
+  });
+
+  el("oflRefreshBtn").addEventListener("click", async () => {
+    el("oflRefreshBtn").disabled = true;
+    const original = el("oflRefreshBtn").textContent;
+    try {
+      const { manufacturers, index } = await oflDownloadEverything((done, total) => {
+        el("oflRefreshBtn").textContent = `Aggiornamento... ${done}/${total}`;
+      });
+      oflSearchIndex = index;
+      renderOflManufacturers(manufacturers);
+      setOflBadge("libreria: completa (pronta offline)", "ok");
+      logLine("sys", `libreria fixture aggiornata per intero (${index.length} fixture)`);
+    } catch (e) {
+      setOflBadge("libreria: offline (solo cache)", "");
+      logLine("err", `aggiornamento libreria fallito: ${e.message}`);
+    } finally {
+      el("oflRefreshBtn").disabled = false;
+      el("oflRefreshBtn").textContent = original;
+    }
+  });
+
+  el("oflManufacturerSelect").addEventListener("change", async () => {
+    const manKey = el("oflManufacturerSelect").value;
+    const fixSel = el("oflFixtureSelect");
+    el("oflFixtureDetail").innerHTML = "";
+    if (!manKey) { fixSel.innerHTML = `<option value="">-- scegli produttore --</option>`; return; }
+    fixSel.innerHTML = `<option value="">-- caricamento --</option>`;
+    let keys = await idbGet("manufacturerFixtures", manKey).catch(() => null);
+    if (!keys) {
+      try {
+        keys = await oflFetchManufacturerFixtures(manKey);
+        setOflBadge("libreria: online", "ok");
+      } catch (e) {
+        fixSel.innerHTML = `<option value="">-- non disponibile offline --</option>`;
+        setOflBadge("libreria: offline (solo cache)", "");
+        logLine("err", `elenco fixture non disponibile: ${e.message}`);
+        return;
+      }
+    }
+    fixSel.innerHTML = `<option value="">-- scegli fixture --</option>` +
+      keys.map((k) => `<option value="${k}">${escapeHtml(k)}</option>`).join("");
+  });
+
+  async function loadAndShowFixture(manKey, fixKey) {
+    const detail = el("oflFixtureDetail");
+    detail.innerHTML = "";
+    if (!manKey || !fixKey) return;
+    let fx = await idbGet("fixtures", `${manKey}/${fixKey}`).catch(() => null);
+    if (!fx) {
+      try {
+        fx = await oflFetchFixture(manKey, fixKey);
+        setOflBadge("libreria: online", "ok");
+      } catch (e) {
+        detail.innerHTML = `<span class="range-note">non disponibile offline</span>`;
+        setOflBadge("libreria: offline (solo cache)", "");
+        return;
+      }
+    }
+    const modes = fx.modes || [];
+    detail.innerHTML = modes.length
+      ? modes.map((mode, idx) => `
+          <div class="ofl-mode-row">
+            <span>${escapeHtml(fx.name)} &middot; ${escapeHtml(mode.name)} &middot; ${mode.channels.length} ch</span>
+            <button data-ofl-import="${idx}">Importa</button>
+          </div>
+        `).join("")
+      : `<span class="range-note">nessuna modalita' disponibile per questa fixture</span>`;
+    detail.querySelectorAll("[data-ofl-import]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mode = modes[parseInt(btn.getAttribute("data-ofl-import"), 10)];
+        const name = `${fx.name} (${mode.name})`;
+        state.profiles.push({ id: uid(), name, channels: [...mode.channels], presets: [] });
+        saveState();
+        renderProfiles();
+        renderPatchProfileOptions();
+        logLine("sys", `profilo "${name}" importato dalla libreria fixture`);
+        // Feedback visivo immediato sul punto esatto del click, non solo
+        // una riga nel log che puo' passare inosservata.
+        const row = btn.closest(".ofl-mode-row");
+        if (row) row.classList.add("just-imported");
+        btn.classList.add("imported");
+        btn.disabled = true;
+        btn.textContent = "Importato";
+      });
+    });
+  }
+
+  el("oflFixtureSelect").addEventListener("change", () => {
+    loadAndShowFixture(el("oflManufacturerSelect").value, el("oflFixtureSelect").value);
+  });
+
+  // ---------- Ricerca globale (indice completo, 2 chiamate una tantum) ----------
+  let oflSearchIndex = null;
+  let oflSearchManufacturers = null;
+
+  async function ensureOflSearchIndex() {
+    if (oflSearchIndex) return oflSearchIndex;
+    oflSearchIndex = await idbGet("fixtureIndex", "all").catch(() => null);
+    return oflSearchIndex;
+  }
+
+  function renderOflSearchResults(query) {
+    const resultsEl = el("oflSearchResults");
+    if (!oflSearchIndex) {
+      // Non dovrebbe succedere (l'indice viene costruito insieme al resto
+      // della libreria da "Scarica libreria fixture"), ma se capita (es.
+      // import di un file esportato da una versione precedente senza
+      // indice) lo segnaliamo invece di mostrare un errore silenzioso.
+      resultsEl.innerHTML = `<span class="range-note">indice di ricerca non disponibile: premi "Aggiorna libreria" (serve internet una volta)</span>`;
+      return;
+    }
+    const q = query.trim().toLowerCase();
+    if (!q) { resultsEl.innerHTML = ""; return; }
+    const matches = oflSearchIndex.filter((e) => {
+      const manName = (oflSearchManufacturers && oflSearchManufacturers[e.manufacturer] && oflSearchManufacturers[e.manufacturer].name) || e.manufacturer;
+      return `${manName} ${e.key}`.toLowerCase().includes(q);
+    }).slice(0, 30);
+    resultsEl.innerHTML = matches.length
+      ? matches.map((e) => {
+          const manName = (oflSearchManufacturers && oflSearchManufacturers[e.manufacturer] && oflSearchManufacturers[e.manufacturer].name) || e.manufacturer;
+          return `<div class="ofl-mode-row"><span>${escapeHtml(manName)} &middot; ${escapeHtml(e.key)}</span><button data-ofl-search-pick="${e.manufacturer}|${e.key}">Apri</button></div>`;
+        }).join("")
+      : `<span class="range-note">nessun risultato</span>`;
+    resultsEl.querySelectorAll("[data-ofl-search-pick]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const [manKey, fixKey] = btn.getAttribute("data-ofl-search-pick").split("|");
+        el("oflManufacturerSelect").value = manKey;
+        el("oflFixtureSelect").innerHTML = `<option value="${fixKey}">${escapeHtml(fixKey)}</option>`;
+        el("oflFixtureSelect").value = fixKey;
+        loadAndShowFixture(manKey, fixKey);
+      });
+    });
+  }
+
+  el("oflSearchInput").addEventListener("input", (e) => renderOflSearchResults(e.target.value));
+
+  // Export/import su file: utile per portare una libreria gia' scaricata
+  // qui (PC con internet) su un dispositivo/pagina senza internet (es. la
+  // console REMOTE collegata solo all'AP della scheda).
+  async function exportOflLibraryToFile() {
+    const db = await oflDb();
+    const dump = { manufacturers: {}, manufacturerFixtures: {}, fixtures: {}, fixtureIndex: {} };
+    for (const storeName of Object.keys(dump)) {
+      await new Promise((resolve, reject) => {
+        const req = db.transaction(storeName, "readonly").objectStore(storeName).openCursor();
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (cursor) { dump[storeName][cursor.key] = cursor.value; cursor.continue(); }
+          else resolve();
+        };
+        req.onerror = () => reject(req.error);
+      });
+    }
+    const blob = new Blob([JSON.stringify(dump)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "lampana_ofl_library.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importOflLibraryFromFile(file) {
+    const dump = JSON.parse(await file.text());
+    for (const [storeName, entries] of Object.entries(dump)) {
+      for (const [key, value] of Object.entries(entries || {})) {
+        await idbSet(storeName, key, value);
+      }
+    }
+    const manufacturers = dump.manufacturers && dump.manufacturers.index;
+    if (!manufacturers) { logLine("err", "file non valido: manca l'indice produttori"); return; }
+    el("oflDownloadSection").hidden = true;
+    el("oflExploreSection").hidden = false;
+    renderOflManufacturers(manufacturers);
+    if (dump.fixtureIndex && dump.fixtureIndex.all) {
+      oflSearchIndex = dump.fixtureIndex.all;
+      renderOflSearchResults(el("oflSearchInput").value);
+    }
+    setOflBadge("libreria: da file (offline)", "");
+    logLine("sys", "libreria fixture importata da file");
+  }
+
+  el("oflExportFileBtn").addEventListener("click", () => {
+    exportOflLibraryToFile().catch((e) => logLine("err", `esportazione fallita: ${e.message}`));
+  });
+  el("oflImportFileBtn").addEventListener("click", () => el("oflImportFileInput").click());
+  el("oflImportFileBtn2").addEventListener("click", () => el("oflImportFileInput").click());
+  el("oflImportFileInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    importOflLibraryFromFile(file).catch((err) => logLine("err", `importazione fallita: ${err.message}`));
+  });
+
+  initFixtureLibrary();
 
   // ---------- PATCH: Channel -> Address ----------
   function addrRange(pt) {
@@ -664,6 +1196,8 @@
     body.querySelectorAll("[data-del-patch]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-del-patch");
+        const pt = patchById(id);
+        if (!confirm(`Rimuovere dalla patch il channel ${pt ? pt.channel : id}?`)) return;
         state.patch = state.patch.filter((p) => p.id !== id);
         selection.delete(id);
         saveState(); renderAll();
@@ -866,12 +1400,17 @@
     list.querySelectorAll("[data-sub-clear]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const sub = state.submasters.find((s) => s.id === btn.getAttribute("data-sub-clear"));
-        if (sub) { sub.levels = {}; saveState(); renderSubmasters(); pushOut(); }
+        if (!sub) return;
+        if (!confirm(`Svuotare i canali registrati del submaster "${sub.name}"?`)) return;
+        sub.levels = {}; saveState(); renderSubmasters(); pushOut();
       });
     });
     list.querySelectorAll("[data-sub-del]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        state.submasters = state.submasters.filter((s) => s.id !== btn.getAttribute("data-sub-del"));
+        const id = btn.getAttribute("data-sub-del");
+        const sub = state.submasters.find((s) => s.id === id);
+        if (!confirm(`Eliminare il submaster "${sub ? sub.name : id}"?`)) return;
+        state.submasters = state.submasters.filter((s) => s.id !== id);
         saveState(); renderSubmasters(); pushOut();
       });
     });
@@ -923,6 +1462,8 @@
       btn.addEventListener("click", () => {
         const [pid, prid] = btn.getAttribute("data-del-preset").split(":");
         const p = profileById(pid);
+        const pr = p && (p.presets || []).find((x) => x.id === prid);
+        if (!confirm(`Eliminare il preset "${pr ? pr.name : prid}"?`)) return;
         if (p) p.presets = (p.presets || []).filter((x) => x.id !== prid);
         saveState(); renderAll();
       });
@@ -1133,10 +1674,14 @@
     }));
     body.querySelectorAll("[data-update-cue]").forEach((btn) => btn.addEventListener("click", () => {
       const cue = state.cues.find((c) => c.id === btn.getAttribute("data-update-cue"));
-      if (cue) { cue.values = Array.from(base); saveState(); logLine("sys", `cue "${cue.name}" aggiornata`); }
+      if (!cue) return;
+      if (!confirm(`Sovrascrivere la cue "${cue.name}" con lo stato attuale? I livelli precedenti andranno persi.`)) return;
+      cue.values = Array.from(base); saveState(); logLine("sys", `cue "${cue.name}" aggiornata`);
     }));
     body.querySelectorAll("[data-del-cue]").forEach((btn) => btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-del-cue");
+      const cue = state.cues.find((c) => c.id === id);
+      if (!confirm(`Eliminare la cue "${cue ? cue.name : id}"?`)) return;
       const idx = state.cues.findIndex((c) => c.id === id);
       state.cues = state.cues.filter((c) => c.id !== id);
       if (cueCursor === idx) cueCursor = -1; else if (cueCursor > idx) cueCursor--;
@@ -1206,6 +1751,144 @@
     fadeHandle = requestAnimationFrame(tick);
   }
 
+  // ---------- PULSANTI: richiamo rapido + Master ----------
+  function captureSelectionLevels() {
+    const levels = {};
+    for (const id of selection) {
+      const pt = patchById(id);
+      const prof = pt && profileById(pt.profileId);
+      if (!pt || !prof) continue;
+      prof.channels.forEach((_, idx) => { levels[pt.address + idx] = base[pt.address + idx]; });
+    }
+    return levels;
+  }
+
+  // Pressione lunga = fade temporizzato verso lo stato del pulsante
+  // (crossfade reale se si arriva da un altro pulsante: parte sempre dal
+  // valore ATTUALE di ogni canale, non da zero). Pressione corta (click
+  // normale) = applicazione istantanea.
+  const FADE_DURATION_MS = 3000;
+  const FADE_TICK_MS = 50;
+  const LONG_PRESS_MS = 450;
+  let activeFadeTimer = null;
+
+  function targetLevelsFor(btn) {
+    const addrs = Object.keys(btn.levels);
+    if (btn.type === "toggle") {
+      const isOn = addrs.every((addr) => base[addr] === btn.levels[addr]);
+      const targets = {};
+      for (const addr of addrs) targets[addr] = isOn ? 0 : btn.levels[addr];
+      return targets;
+    }
+    return { ...btn.levels };
+  }
+
+  function startButtonFade(btn) {
+    if (activeFadeTimer) { clearInterval(activeFadeTimer); activeFadeTimer = null; }
+    const targets = targetLevelsFor(btn);
+    const addrs = Object.keys(targets);
+    const from = {};
+    for (const addr of addrs) from[addr] = base[addr] || 0;
+    const t0 = performance.now();
+    activeFadeTimer = setInterval(() => {
+      const t = Math.min(1, (performance.now() - t0) / FADE_DURATION_MS);
+      for (const addr of addrs) base[addr] = Math.round(from[addr] + (targets[addr] - from[addr]) * t);
+      renderParamPanel();
+      syncAllManualChannels();
+      pushOut();
+      if (t >= 1) {
+        clearInterval(activeFadeTimer);
+        activeFadeTimer = null;
+        renderButtons();
+      }
+    }, FADE_TICK_MS);
+    logLine("sys", `pulsante "${btn.name}": fade di ${(FADE_DURATION_MS / 1000).toFixed(1)}s avviato`);
+  }
+
+  function pressButtonInstant(btn) {
+    const targets = targetLevelsFor(btn);
+    for (const addr of Object.keys(targets)) base[addr] = targets[addr];
+    renderParamPanel();
+    syncAllManualChannels();
+    pushOut();
+    renderButtons();
+    logLine("sys", `pulsante "${btn.name}" premuto`);
+  }
+
+  function renderButtons() {
+    const list = el("buttonList");
+    list.innerHTML = "";
+    if (state.buttons.length === 0) {
+      list.innerHTML = `<div class="console-empty">nessun pulsante &mdash; seleziona dei channel in Live e clicca "+ Nuovo da selezione"</div>`;
+      return;
+    }
+    for (const btn of state.buttons) {
+      const addrs = Object.keys(btn.levels);
+      const isOn = btn.type === "toggle" && addrs.length > 0 && addrs.every((addr) => base[addr] === btn.levels[addr]);
+      const card = document.createElement("div");
+      card.className = "quick-btn" + (isOn ? " on" : "");
+      card.innerHTML = `
+        <button class="qb-del" data-btn-del="${btn.id}" title="elimina">&times;</button>
+        <div class="qb-name">${escapeHtml(btn.name)}</div>
+        <div class="qb-type">${btn.type === "toggle" ? "toggle" : "scena"}</div>
+      `;
+      let longPressTimer = null;
+      let longPressFired = false;
+      const clearLongPress = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
+      card.addEventListener("pointerdown", (e) => {
+        if (e.target.closest("[data-btn-del]")) return;
+        longPressFired = false;
+        longPressTimer = setTimeout(() => {
+          longPressFired = true;
+          startButtonFade(btn);
+        }, LONG_PRESS_MS);
+      });
+      card.addEventListener("pointerup", clearLongPress);
+      card.addEventListener("pointerleave", clearLongPress);
+      card.addEventListener("pointercancel", clearLongPress);
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("[data-btn-del]")) return;
+        if (longPressFired) { longPressFired = false; return; } // gia' gestito dal long-press, evita il doppio trigger
+        pressButtonInstant(btn);
+      });
+      list.appendChild(card);
+    }
+    list.querySelectorAll("[data-btn-del]").forEach((delBtn) => {
+      delBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = delBtn.getAttribute("data-btn-del");
+        const b = state.buttons.find((x) => x.id === id);
+        if (!confirm(`Eliminare il pulsante "${b ? b.name : id}"?`)) return;
+        state.buttons = state.buttons.filter((x) => x.id !== id);
+        saveState();
+        renderButtons();
+      });
+    });
+  }
+
+  el("addButtonBtn").addEventListener("click", () => {
+    if (selection.size === 0) { logLine("err", "seleziona almeno un channel in Live prima di creare un pulsante"); return; }
+    const name = (prompt("Nome pulsante:") || "").trim();
+    if (!name) return;
+    const isToggle = confirm('OK = pulsante "toggle" (accende/spegne)\nAnnulla = pulsante "scena" (richiama sempre questi livelli)');
+    state.buttons.push({ id: uid(), name, type: isToggle ? "toggle" : "scene", levels: captureSelectionLevels() });
+    saveState();
+    renderButtons();
+    logLine("sys", `pulsante "${name}" creato (${isToggle ? "toggle" : "scena"})`);
+  });
+
+  function renderMaster() {
+    const v = typeof state.master === "number" ? state.master : 100;
+    el("masterFader").value = v;
+    el("masterVal").textContent = `${v}%`;
+  }
+  el("masterFader").addEventListener("input", (e) => {
+    state.master = parseInt(e.target.value, 10);
+    el("masterVal").textContent = `${state.master}%`;
+    pushOut();
+  });
+  el("masterFader").addEventListener("change", () => saveState());
+
   function renderAll() {
     renderProfiles();
     renderPatch();
@@ -1214,16 +1897,20 @@
     renderSubmasters();
     renderPresetPage();
     renderCues();
+    renderButtons();
+    renderMaster();
   }
 
   el("blackoutAllBtn").addEventListener("click", () => {
-    base.fill(0);
-    // il blackout deve vincere su tutto, anche sui submaster alzati (altrimenti l'HTP li terrebbe accesi)
-    for (const sub of state.submasters) sub.fader = 0;
-    saveState();
-    renderParamPanel(); syncAllManualChannels(); renderSubmasters();
+    // Toggle, non azzeramento distruttivo: forza solo l'uscita a 0 (vince
+    // sempre sull'HTP, anche sui submaster alzati), senza mai toccare o
+    // salvare programmer/submaster/preset -- disattivarlo ripristina
+    // esattamente il look di prima.
+    blackoutActive = !blackoutActive;
+    el("blackoutAllBtn").classList.toggle("active", blackoutActive);
+    el("blackoutAllBtn").textContent = blackoutActive ? "BLACKOUT (attivo)" : "BLACKOUT";
     pushOut();
-    logLine("sys", "blackout: programmer e submaster azzerati");
+    logLine("sys", blackoutActive ? "blackout attivato (uscita a 0, nulla e' stato modificato)" : "blackout disattivato");
   });
 
   // ---------- comunicazione seriale ----------
