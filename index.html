@@ -495,7 +495,11 @@
     <section>
       <div class="section-head">
         <div><div class="eyebrow">Playback</div><h2>Memorie / Cue</h2></div>
-        <button id="recordCueBtn">+ Registra cue da stato attuale</button>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="pill" id="cueStatePillCue"><span class="dot"></span><span id="cueStateLabelCue">nessuna cue attiva</span></span>
+          <button id="goNextBtnCue" class="primary" disabled>GO</button>
+          <button id="recordCueBtn">+ Registra cue da stato attuale</button>
+        </div>
       </div>
       <div style="overflow-x:auto;">
       <table class="data-table" id="cueTable">
@@ -1704,9 +1708,12 @@
     body.querySelectorAll("[data-move-down]").forEach((btn) => btn.addEventListener("click", () => moveCue(btn.getAttribute("data-move-down"), 1)));
 
     el("goNextBtn").disabled = state.cues.length === 0;
-    el("cueStateLabel").textContent = cueCursor >= 0 && state.cues[cueCursor]
+    el("goNextBtnCue").disabled = state.cues.length === 0;
+    const cueStateText = cueCursor >= 0 && state.cues[cueCursor]
       ? `cue ${cueCursor + 1}/${state.cues.length} · ${state.cues[cueCursor].name}`
       : "nessuna cue attiva";
+    el("cueStateLabel").textContent = cueStateText;
+    el("cueStateLabelCue").textContent = cueStateText;
   }
 
   function moveCue(id, dir) {
@@ -1722,7 +1729,9 @@
     state.cues.push({ id: uid(), name: `Cue ${state.cues.length + 1}`, note: "", fadeInSeconds: 2, fadeOutSeconds: 2, values: Array.from(base) });
     saveState(); renderAll();
   });
-  el("goNextBtn").addEventListener("click", () => goToCue(cueCursor + 1 < state.cues.length ? cueCursor + 1 : 0));
+  const goNextCue = () => goToCue(cueCursor + 1 < state.cues.length ? cueCursor + 1 : 0);
+  el("goNextBtn").addEventListener("click", goNextCue);
+  el("goNextBtnCue").addEventListener("click", goNextCue);
   el("stopFadeBtn").addEventListener("click", () => stopFade());
 
   function stopFade() {
