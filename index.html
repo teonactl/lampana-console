@@ -368,7 +368,7 @@
         <input type="text" id="cmdLine" placeholder="es. 1 thru 4 at 50   /   1 full   /   record   /   go" autocomplete="off">
         <button class="primary" id="cmdEnterBtn">Enter</button>
       </div>
-      <div class="cmd-hint">comandi: &lt;chan&gt; &middot; thru &lt;chan&gt; &middot; + &lt;chan&gt; &middot; at &lt;0-100&gt; &middot; full &middot; out &middot; clear &middot; record [nome] &middot; go [numero]</div>
+      <div class="cmd-hint">comandi: &lt;chan&gt; &middot; thru &lt;chan&gt; &middot; + &lt;chan&gt; &middot; at &lt;0-100|full|out&gt; &middot; full &middot; out &middot; clear &middot; record [nome] &middot; go [numero]</div>
     </section>
 
     <section>
@@ -1587,12 +1587,25 @@
         if (pt) newSelection.delete(pt.id);
         i += 2; continue;
       }
-      if ((tok === "at" || tok === "@") && i + 1 < tokens.length && /^\d+$/.test(tokens[i + 1])) {
-        const pct = Math.max(0, Math.min(100, parseInt(tokens[i + 1], 10)));
-        const ids = newSelection !== null ? newSelection : selection;
-        if (ids.size === 0) { logLine("err", "nessun channel selezionato"); i += 2; continue; }
-        setLevelForSelection(ids, Math.round(pct * 2.55));
-        i += 2; continue;
+      if ((tok === "at" || tok === "@") && i + 1 < tokens.length) {
+        // "at <0-100>" (percentuale) oppure le parole chiave "full"/"out"
+        // (stesso significato di scrivere "full"/"out" da soli, ma come
+        // argomento di "at" -- sintassi valida su una vera consolle Eos).
+        const nextTok = tokens[i + 1];
+        let levelByte = null;
+        if (/^\d+$/.test(nextTok)) {
+          levelByte = Math.round(Math.max(0, Math.min(100, parseInt(nextTok, 10))) * 2.55);
+        } else if (nextTok === "full") {
+          levelByte = 255;
+        } else if (nextTok === "out" || nextTok === "min") {
+          levelByte = 0;
+        }
+        if (levelByte !== null) {
+          const ids = newSelection !== null ? newSelection : selection;
+          if (ids.size === 0) logLine("err", "nessun channel selezionato");
+          else setLevelForSelection(ids, levelByte);
+          i += 2; continue;
+        }
       }
       if (tok === "full") { setLevelForSelection(newSelection !== null ? newSelection : selection, 255); i++; continue; }
       if (tok === "out") { setLevelForSelection(newSelection !== null ? newSelection : selection, 0); i++; continue; }
